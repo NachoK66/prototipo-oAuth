@@ -1,0 +1,40 @@
+services:
+  user-service:
+    build: ./backend/services/user-service
+    container_name: user-service
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/services/user-service/.env
+    depends_on:
+      - db
+
+  db:
+    image: mongo:latest
+    container_name: mongo-db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${ME_CONFIG_MONGODB_ADMINUSERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${ME_CONFIG_MONGODB_ADMINPASSWORD}
+      - ME_CONFIG_MONGODB_SERVER=db
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+
+volumes:
+  mongo-data:
+  mongo-config:

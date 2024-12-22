@@ -1,0 +1,9 @@
+services:
+  user-service:
+    volumes:
+      - ./backend/services/user-service:/app
+      - /app/node_modules
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongo-db:27017/user-service-db
+    command: ["npm", "run", "dev"]
