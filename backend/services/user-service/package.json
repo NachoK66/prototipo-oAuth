@@ -12,7 +12,8 @@
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.0",
         "mongoose": "^7.5.1",
-        "router": "^2.0.0"
+        "router": "^2.0.0",
+        "user-service": "file:"
     },
     "devDependencies": {
         "nodemon": "^3.0.1"
