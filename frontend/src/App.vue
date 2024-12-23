@@ -1,24 +1,12 @@
-<template>
-  <div id="app">
-    <OAuth />
-    Hola, mundo!
-  </div>
-  <div>
-    <h1>Iniciar sesión con OAuth</h1>
-    <button @click="login">Iniciar sesión</button>
-  </div>
-</template>
-
-<script>
-import OAuth from './components/oAuth.vue';
-
-export default {
-  name: 'App',
-  components: {
-    OAuth, // Registro del componente OAuth
-  },
-};
+<script setup>
+  import OAuth from './components/oAuth.vue';
 </script>
+
+<template>
+  <main>
+    <OAuth />
+  </main>
+</template>
 
 <style>
 /* Estilos básicos o deja vacío si no necesitas diseño adicional */
