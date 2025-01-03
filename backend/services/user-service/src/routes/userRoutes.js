@@ -8,4 +8,6 @@ router.post('/', userController.createUser);    // Create a new user
 router.put('/:oauthId', userController.updateUser);   // Update a user
 router.delete('/:oauthId', userController.deleteUser); // Delete a user
 
+router.post('/login', userController.login); // Login a user
+
 module.exports = router;

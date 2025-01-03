@@ -2,12 +2,13 @@
     "name": "user-service",
     "version": "1.0.0",
     "description": "User service",
-    "main": "src/app.js",
+    "main": "index.js",
     "scripts": {
-        "start": "node src/app.js",
-        "dev": "nodemon src/app.js"
+        "start": "node index.js",
+        "dev": "nodemon index.js"
     },
     "dependencies": {
+        "cors": "^2.8.5",
         "dotenv": "^16.1",
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.0",

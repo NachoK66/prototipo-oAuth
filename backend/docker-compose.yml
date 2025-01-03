@@ -10,7 +10,7 @@ services:
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
-
+  
   mongo-express:
     image: mongo-express:latest
     container_name: mongo-express-microservices
@@ -27,28 +27,16 @@ services:
 
   user-service:
     build:
-      context: ./backend/services/user-service
+      context: ./services/user-service
       dockerfile: Dockerfile
     container_name: user-service
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
-      - "5000:5000"
     depends_on:
       - mongodb
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - USERS_API_HOST=${USERS_API_HOST}
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_USERS_API_HOST=${VITE_USERS_API_HOST}
-      - VITE_NODE_ENV=${VITE_NODE_ENV}
 
 volumes:
   mongo-data:

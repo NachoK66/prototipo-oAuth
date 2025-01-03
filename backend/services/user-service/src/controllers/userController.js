@@ -70,10 +70,28 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// Login a user with oAuthId
+const login = async (req, res) => {
+    try {
+        const user = await
+            User.findOne({ oauthId :
+                req.body.token });
+        if (!user){
+            console.log("User not found");
+            return res.status(200).json();
+        }
+        res.status(200).json(user);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
 module.exports = {
     getUsers,
     getUserByOAuthId,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    login
 };
