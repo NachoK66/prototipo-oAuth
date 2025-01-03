@@ -14,6 +14,36 @@
 <script>
 import axios from "axios";
 
+// Función para establecer una cookie con el token
+const setAuthTokenCookie = (token) => {
+  const expirationTime = new Date();
+  expirationTime.setTime(expirationTime.getTime() + (7 * 24 * 60 * 60 * 1000));  // Expira en 7 días
+  document.cookie = `authToken=${token}; expires=${expirationTime.toUTCString()}; path=/`;
+};
+
+// Función para obtener el token de las cookies
+const getAuthTokenFromCookie = () => {
+  const name = "authToken=";
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookies = decodedCookie.split(";");
+
+  for (let i = 0; i < cookies.length; i++) {
+    let cookie = cookies[i];
+    while (cookie.charAt(0) === " ") {
+      cookie = cookie.substring(1);
+    }
+    if (cookie.indexOf(name) === 0) {
+      return cookie.substring(name.length, cookie.length);
+    }
+  }
+  return null; // Si no se encuentra la cookie
+};
+
+// Función para eliminar la cookie
+const deleteAuthTokenCookie = () => {
+  document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+};
+
 export default {
   data() {
     return {
@@ -22,7 +52,7 @@ export default {
   },
   methods: {
     async verifyTokenLocally() {
-      const authToken = localStorage.getItem("authToken");
+      const authToken = getAuthTokenFromCookie();
       if (authToken) {
         axios
           .post("http://localhost:5000/users/validate-token", { token: authToken })
@@ -30,7 +60,7 @@ export default {
             if (response.data.valid) {
               this.user = response.data.user; // Establecer datos del usuario
               console.log("Sesión válida");
-              this.renewToken();              // Se renueva el token para alargar la sesión
+              this.renewToken(); // Se renueva el token para alargar la sesión
 
               // Al recuperar del backend la imagen no funcionaba, con esto se corrige
               if (this.user.profilePicture) {
@@ -53,16 +83,13 @@ export default {
       }
     },
     renewToken() {
-      // Verificar y renovar el token si es necesario
-      const authToken = localStorage.getItem("authToken");
+      const authToken = getAuthTokenFromCookie();
       if (authToken) {
-        console.log("Verificando token:", authToken);
         const decodedToken = JSON.parse(atob(authToken.split(".")[1])); // Decodificar el token
         const expirationTime = decodedToken.exp * 1000; // Convertir a milisegundos
         const currentTime = new Date().getTime();
 
         if (currentTime < expirationTime) {
-          // Si el token no ha expirado, renovamos su expiración llamando al backend
           console.log("Token válido. Renovando...");
 
           // Realizamos una solicitud al backend para renovar el token
@@ -70,8 +97,7 @@ export default {
             .post("http://localhost:5000/users/renew-token", { token: authToken })
             .then((response) => {
               const newToken = response.data.newToken; // El nuevo token proporcionado por el backend
-              localStorage.setItem("authToken", newToken); // Guardar el nuevo token
-              console.log("Token renovado:", newToken);
+              setAuthTokenCookie(newToken); // Guardar el nuevo token en la cookie
             })
             .catch((error) => {
               console.error("Error al renovar el token:", error);
@@ -86,20 +112,20 @@ export default {
       }
     },
     handleCredentialResponse(response) {
-      if (response.credential) {      // Token firmado de Google
+      if (response.credential) { // Token firmado de Google
         try {
-          const idToken = response.credential;
-          const decodedToken = JSON.parse(atob(idToken.split(".")[1])); // Decodificar el token JWT de Google
+          const googleToken = response.credential;
+          const decodedToken = JSON.parse(atob(googleToken.split(".")[1])); // Decodificar el token JWT de Google
 
           // Enviar el token al backend para validación y recibir el token personalizado
           axios
-            .post("http://localhost:5000/users/login", { token: idToken })
+            .post("http://localhost:5000/users/login", { token: googleToken })
             .then((response) => {
               const serverResponse = response.data;
 
               if (serverResponse.customToken) {
-                // Guardar el token personalizado en localStorage
-                localStorage.setItem("authToken", serverResponse.customToken);
+                // Guardar el token personalizado en cookies
+                setAuthTokenCookie(serverResponse.customToken);
 
                 // Asignar los datos del usuario al estado de la aplicación
                 this.user = {
@@ -133,7 +159,7 @@ export default {
     },
     signOut() {
       // Resetear la información del usuario en la aplicación
-      localStorage.removeItem("authToken");
+      deleteAuthTokenCookie(); // Eliminar el token de las cookies
       this.user = null;
 
       console.log("Sesión cerrada localmente.");
