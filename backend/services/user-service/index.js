@@ -7,7 +7,7 @@ const app = require('./src/apps/userApp')
 const PORT = process.env.PORT || 5000;
 console.log('PORT:', PORT);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin@mongodb:27017/userOAuth?authSource=admin';
-console.log('MONGODB_URI:', MONGODB_URI);
+console.log('Connecting to MONGODB_URI:', MONGODB_URI);
 
 mongoose.connect(MONGODB_URI)
     .then(() => {

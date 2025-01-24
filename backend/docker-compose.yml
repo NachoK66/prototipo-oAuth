@@ -1,7 +1,7 @@
 services:
   mongodb:
     image: mongo:latest
-    container_name: mongo-dev-microservices
+    container_name: mongo-dev-microservices-oAuth
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
@@ -13,7 +13,7 @@ services:
   
   mongo-express:
     image: mongo-express:latest
-    container_name: mongo-express-microservices
+    container_name: mongo-express-microservices-oAuth
     environment:
       - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME}
       - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD}
@@ -29,7 +29,7 @@ services:
     build:
       context: ./services/user-service
       dockerfile: Dockerfile
-    container_name: user-service
+    container_name: user-service-oAuth
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     depends_on:

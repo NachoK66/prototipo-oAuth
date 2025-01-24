@@ -1,28 +1,24 @@
-# oAuth
+## Configuración recomendada del IDE
 
-This template should help get you started developing with Vue 3 in Vite.
+[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (y desactivar Vetur).
 
-## Recommended IDE Setup
+## Personalizar configuración
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Consulta la [Referencia de configuración de Vite](https://vite.dev/config/).
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Configuración del proyecto
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+### Compilar y recargar automáticamente para desarrollo
 
 ```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+### Compilar y minificar para producción
 
 ```sh
 npm run build

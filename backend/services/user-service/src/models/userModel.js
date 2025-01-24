@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  oauthId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   email: {
     type: String,
     required: true,
@@ -17,11 +12,11 @@ const userSchema = new mongoose.Schema({
   },
   profilePicture: {
     type: String,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  }
+},
+  {
+    timestamps: true
+  }
+);
 
 module.exports = mongoose.model('User', userSchema);

@@ -1,214 +1,112 @@
 <template>
   <div>
     <div v-if="!user">
-      <a href="#" @click.prevent="openSignInDialog">Iniciar sesión</a>
+      <a href="#" @click.prevent="openSignInDialog">Login</a>
     </div>
     <div v-else>
-      <h3>{{ user.name }}</h3>
-      <img :src="user.picture" alt="User photo" style="width: 50px; height: 50px; border-radius: 50%" /><br />
-      <button @click="signOut">Sign out</button>
+      <img v-if="this.user.profilePicture" :src="this.user.profilePicture" alt="User photo"
+        style="width: 50px; height: 50px; border-radius: 50%" />
+      <img v-else src="../assets/blank-profile-picture-973460_1280.webp" alt="User photo"
+        style="width: 50px; height: 50px; border-radius: 50%" /><br/>
+      <button @click="authStore.logout">Salir</button>
     </div>
   </div>
 </template>
 
 <script>
-import axios from "axios";
-
-// Función para establecer una cookie con el token
-const setAuthTokenCookie = (token) => {
-  const expirationTime = new Date();
-  expirationTime.setTime(expirationTime.getTime() + (7 * 24 * 60 * 60 * 1000));  // Expira en 7 días
-  document.cookie = `authToken=${token}; expires=${expirationTime.toUTCString()}; path=/`;
-};
-
-// Función para obtener el token de las cookies
-const getAuthTokenFromCookie = () => {
-  const name = "authToken=";
-  const decodedCookie = decodeURIComponent(document.cookie);
-  const cookies = decodedCookie.split(";");
-
-  for (let i = 0; i < cookies.length; i++) {
-    let cookie = cookies[i];
-    while (cookie.charAt(0) === " ") {
-      cookie = cookie.substring(1);
-    }
-    if (cookie.indexOf(name) === 0) {
-      return cookie.substring(name.length, cookie.length);
-    }
-  }
-  return null; // Si no se encuentra la cookie
-};
-
-// Función para eliminar la cookie
-const deleteAuthTokenCookie = () => {
-  document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
-};
+import { useAuthStore } from "../stores/auth";
 
 export default {
-  data() {
-    return {
-      user: null,
-    };
+  computed: {
+    authStore() {
+      return useAuthStore();
+    },
+    user() {
+      return this.authStore.getLoggedUser;
+    },
   },
   methods: {
-    async verifyTokenLocally() {
-      const authToken = getAuthTokenFromCookie();
-      if (authToken) {
-        axios
-          .post("http://localhost:5000/users/validate-token", { token: authToken })
-          .then((response) => {
-            if (response.data.valid) {
-              this.user = response.data.user; // Establecer datos del usuario
-              console.log("Sesión válida");
-              this.renewToken(); // Se renueva el token para alargar la sesión
-
-              // Al recuperar del backend la imagen no funcionaba, con esto se corrige
-              if (this.user.profilePicture) {
-                this.user.picture = this.user.profilePicture;
-              } else {
-                this.user.picture = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-              }
-            } else {
-              console.warn("Token inválido o caducado. Se ha cerrado la sesión");
-              this.signOut(); // Limpiar estado y redirigir
-            }
-          })
-          .catch((error) => {
-            console.error("Error al validar el token:", error);
-            this.signOut();
-          });
-      } else {
-        console.log("No hay token almacenado.");
-        google.accounts.id.prompt();
-      }
-    },
-    renewToken() {
-      const authToken = getAuthTokenFromCookie();
-      if (authToken) {
-        const decodedToken = JSON.parse(atob(authToken.split(".")[1])); // Decodificar el token
-        const expirationTime = decodedToken.exp * 1000; // Convertir a milisegundos
-        const currentTime = new Date().getTime();
-
-        if (currentTime < expirationTime) {
-          console.log("Token válido. Renovando...");
-
-          // Realizamos una solicitud al backend para renovar el token
-          axios
-            .post("http://localhost:5000/users/renew-token", { token: authToken })
-            .then((response) => {
-              const newToken = response.data.newToken; // El nuevo token proporcionado por el backend
-              setAuthTokenCookie(newToken); // Guardar el nuevo token en la cookie
-            })
-            .catch((error) => {
-              console.error("Error al renovar el token:", error);
-              this.signOut(); // Cerrar sesión si ocurre un error
-            });
-        } else {
-          console.log("El token ha expirado.");
-          this.signOut(); // Cerrar sesión si el token ha expirado
-        }
-      } else {
-        console.log("No hay token almacenado.");
-      }
-    },
-    handleCredentialResponse(response) {
-      if (response.credential) { // Token firmado de Google
-        try {
-          const googleToken = response.credential;
-          const decodedToken = JSON.parse(atob(googleToken.split(".")[1])); // Decodificar el token JWT de Google
-
-          // Enviar el token al backend para validación y recibir el token personalizado
-          axios
-            .post("http://localhost:5000/users/login", { token: googleToken })
-            .then((response) => {
-              const serverResponse = response.data;
-
-              if (serverResponse.customToken) {
-                // Guardar el token personalizado en cookies
-                setAuthTokenCookie(serverResponse.customToken);
-
-                // Asignar los datos del usuario al estado de la aplicación
-                this.user = {
-                  email: serverResponse.user.email,
-                  name: serverResponse.user.name,
-                  picture: decodedToken.picture || "", // Imagen del perfil desde el token de Google
-                  id: serverResponse.user._id, // ID del usuario en nuestra base de datos
-                };
-
-                console.log("Usuario autenticado");
-              } else {
-                console.error("No se recibió un token personalizado del servidor.");
-              }
-            })
-            .catch((error) => {
-              console.error("Error al autenticar usuario:", error);
-            });
-        } catch (error) {
-          console.error("Error al procesar el token:", error);
-        }
-      } else {
-        console.error("No credential received.");
-      }
-    },
     openSignInDialog() {
       if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.prompt(); // Abre el cuadro de diálogo de inicio de sesión
+        // Abre el cuadro de diálogo de inicio de sesión
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed()) {    // Si por cualquier motivo no se muestra el cuadro de inicio de sesión
+            console.log("El cuadro de inicio de sesión no se mostró.");
+            document.cookie = "g_state=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";    // Elimina la cookie de cooldown
+
+            const popup = window.open(
+              "/window-login.html", // Ruta al archivo donde se ejecutará `windowLogin()`
+              "_blank",
+              "width=600,height=600"
+            );
+
+            if (!popup) {
+              alert("No se pudo abrir la ventana de inicio de sesión. Por favor, desactiva el bloqueo de ventanas emergentes.");
+            }
+          }
+        });
       } else {
+        alert("Google Identity Services no está disponible.");
         console.error("Google Identity Services no está disponible.");
       }
     },
-    signOut() {
-      // Resetear la información del usuario en la aplicación
-      deleteAuthTokenCookie(); // Eliminar el token de las cookies
-      this.user = null;
+    async handleCredentialResponse(response) {
+      console.log("Credencial recibida:", response.credential);
 
-      console.log("Sesión cerrada localmente.");
+      try {
+        await this.authStore.login(response.credential); // Llamar al store para manejar el inicio de sesión
+      } catch (error) {
+        console.error("Error al manejar el inicio de sesión:", error);
+      }
     },
+    handleStorageChange(event) {
+      if (event.key === "sesion_iniciada" && event.newValue === "true") {
+        console.log("Sesión iniciada desde la ventana emergente.");
+        location.reload(); // Recargar la página para reflejar el inicio de sesión
+      }
+    },
+    async verifySession() {
+      try {
+        await this.authStore.verifyTokenAndRestore(); // Verificar el token y restaurar la sesión si es válido
+      } catch (error) {
+        console.error("Error al verificar el token y restaurar la sesión:", error);
+        localStorage.setItem("sesion_iniciada", "false");
+      }
+    },
+    loadGoogleIdentityServices() {
+      // Código existente para cargar Google Identity Services
+      if (!document.querySelector("script[src='https://accounts.google.com/gsi/client']")) {
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+
+        script.onload = () => {
+          if (window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.initialize({
+              client_id: "182571812959-9dtpldakbn2bk4m15jd0ijmqoe50p4nb.apps.googleusercontent.com",
+              callback: this.handleCredentialResponse,
+              auto_select: false,
+            });
+            console.log("Google Identity Services inicializado.");
+          } else {
+            console.error("Google Identity Services no está disponible.");
+          }
+        };
+
+        document.head.appendChild(script);
+      }
+    }
   },
   mounted() {
-    // Cargar la biblioteca GIS
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
+    // Añadir un listener para detectar cambios en el sessionStorage. 
+    // Esto es útil para detectar si el usuario ha iniciado sesión en otra pestaña.
+    window.addEventListener('storage', this.handleStorageChange);
+    
+    // Comprobar si el usuario ya ha iniciado sesión
+    this.verifySession();
 
-    script.onload = () => {
-      google.accounts.id.initialize({
-        client_id: "182571812959-9dtpldakbn2bk4m15jd0ijmqoe50p4nb.apps.googleusercontent.com",
-        callback: this.handleCredentialResponse,
-        auto_select: true, // Permite iniciar sesión automáticamente si hay una sesión activa
-      });
-
-      // Verificar token al cargar
-      this.verifyTokenLocally();
-    };
-    document.head.appendChild(script);
+    this.loadGoogleIdentityServices();
   },
 };
 </script>
-
-<style scoped>
-a {
-  text-decoration: none;
-  color: #007bff;
-  cursor: pointer;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-button {
-  cursor: pointer;
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-button:hover {
-  background-color: #d32f2f;
-}
-</style>

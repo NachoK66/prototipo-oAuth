@@ -1,6 +1,6 @@
 const User = require('../models/userModel');
 const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+//const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwt = require("jsonwebtoken");
 const { get } = require('mongoose');
 
@@ -14,18 +14,18 @@ const getUsers = async (req, res) => {
     }
 };
 
-// Get user by ID
-const getUserByOAuthId = async (req, res) => {
+// Get user by Email
+const getUserByEmail = async (req, res) => {
     try {
-        const user = await User.findOne({ oauthId: req.params.oauthId });
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        const user = await User.findOne({ email: req.params.email });
+        if (!user) return res.status(404).json({ message: 'User with that email not found' });
         res.status(200).json(user);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Get user by ID
+// Get user by mongo ID
 const getUserById = async (req, res) => {
     try {
         const user = await User.findById(req.params._id);
@@ -39,7 +39,6 @@ const getUserById = async (req, res) => {
 // Create a new user
 const createUser = async (req, res) => {
     const user = new User({
-        oauthId: req.body.oauthId,
         name: req.body.name,
         email: req.body.email
     });
@@ -58,7 +57,7 @@ const createUser = async (req, res) => {
 // Update a user
 const updateUser = async (req, res) => {
     try {
-        const user = await User.findOne({ oauthId: req.params.oauthId });
+        const user = await User.findOne({ email: req.params.email });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (req.body.name) user.name = req.body.name;
@@ -75,7 +74,7 @@ const updateUser = async (req, res) => {
 // Delete a user
 const deleteUser = async (req, res) => {
     try {
-        const user = await User.findOne({ oauthId: req.params.oauthId });
+        const user = await User.findOne({ email: req.params.email });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         await user.remove();
@@ -89,21 +88,21 @@ const deleteUser = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { token } = req.body;
+
         // Decodificar el token para obtener los datos necesarios
         const decodedToken = jwt.decode(token);
 
         // Intentar encontrar el usuario en la base de datos
-        let user = await User.findOne({ oauthId: decodedToken.sub });
+        let user = await User.findOne({ email: decodedToken.email });
 
         // Si el usuario no existe, crear uno nuevo
         if (!user) {
-            console.log("Usuario no encontrado con oauthId: " + token);
+            console.log("Usuario no encontrado con email: " + decodedToken.email);
 
             // Crear un nuevo usuario
             user = new User({
-                oauthId: decodedToken.sub,
-                name: decodedToken.name,
                 email: decodedToken.email,
+                name: decodedToken.given_name,
                 profilePicture: decodedToken.picture
             });
 
@@ -114,7 +113,6 @@ const login = async (req, res) => {
 
         // Crear el payload para el token JWT
         const payload = {
-            id: user._id,
             email: user.email,
             name: user.name,
             profilePicture: user.profilePicture
@@ -139,12 +137,11 @@ const validateToken = async (req, res) => {
         // Decodificar y verificar el token
         console.log("Validando token: " + token);
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("Decoded token: " + JSON.stringify(decoded));
 
-        console.log("Buscando user ID: " + decoded.id);
+        console.log("Buscando user email: " + decoded.email);
 
         // Verifica si el usuario existe en la base de datos
-        const user = await User.findById(decoded.id);
+        const user = await User.findOne({ email: decoded.email });
 
         if (!user) {
             return res.status(401).json({ valid: false, message: "Usuario no encontrado." });
@@ -171,7 +168,6 @@ const renewToken = async (req, res) => {
 
         // Crear un nuevo token con los mismos datos pero con nueva expiración
         const payload = {
-            id: decoded.id,
             email: decoded.email,
             name: decoded.name,
             picture: decoded.picture,
@@ -190,7 +186,7 @@ const renewToken = async (req, res) => {
 
 module.exports = {
     getUsers,
-    getUserByOAuthId,
+    getUserByEmail,
     getUserById,
     createUser,
     updateUser,
